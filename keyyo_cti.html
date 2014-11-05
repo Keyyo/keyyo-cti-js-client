@@ -1,0 +1,120 @@
+<html>
+<head>
+	<!-- Include Keyyo CTI SDK -->
+	<script type="text/javascript" src="https://api.keyyo.com/libs/keyyo-cti/1.0/keyyo-cti.min.js"></script>
+	<script type="text/javascript">
+	/*
+		@license https://github.com/Keyyo/keyyo-manager-php-client/blob/master/LICENSE MIT License
+		Copyright (c) 2014 Keyyo
+
+		Permission is hereby granted, free of charge, to any person obtaining a copy of
+		this software and associated documentation files (the "Software"), to deal in
+		the Software without restriction, including without limitation the rights to
+		use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+		the Software, and to permit persons to whom the Software is furnished to do so,
+		subject to the following conditions:
+
+		The above copyright notice and this permission notice shall be included in all
+		copies or substantial portions of the Software.
+
+		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+		IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+		FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+		COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+		IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+		CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+	*/
+
+	(function() {
+		// Timer used when a SETUP event is detected
+		var duration_timer;
+
+		// Your CSI token
+		// Refer to the CSI token sample for a way to retrieve it (https://github.com/Keyyo/keyyo-manager-php-client/blob/master/samples/csi_token.php)
+		var csi_token = "<Your CSI token>";
+
+		// Instantiate the Keyyo CTI library
+		var cti = new Keyyo.CTI(csi_token);
+
+		// "error" event : an error occurred
+		cti.onError = function(error) {
+			console.log("An error occurred: " + error.message);
+			document.getElementById("status-message").innerHTML = error.message;
+		}
+
+		// "connected" event : connected to the remote CTI service
+		cti.onConnected = function() {
+			console.log("Connected to Keyyo");
+
+			document.getElementById("status-message").innerHTML = "Connected to Keyyo !";
+		}
+
+		// "disconnected" event : disconnected from the remote CTI service
+		cti.onDisconnected = function() {
+			console.log("Disconnected");
+			document.getElementById("status-message").innerHTML = "You are disconnected (Socket closed) !";
+		}
+
+		// Catch all events for any calls
+		cti.onNewCall = function(call) {
+			// Ignore a specific caller
+			if (call.caller === '33123456789')
+				return;
+
+			// "setup" event: start of a call, callee's phone is ringing
+			call.onSetup = function(data) {
+				console.log("on setup... (" + data.status + ")");
+			}
+
+			// "connect" event: when callee picks up the phone
+			call.onConnect = function(data) {
+				console.log("on connect... (" + data.status + ")");
+
+			// Display a counter and increment it every second
+
+				var h, m, s;
+				h = document.getElementById("h");
+				m = document.getElementById("m");
+				s = document.getElementById("s");
+
+				duration_timer = setInterval(function() {
+					if (data.duration.seconds >= 59) {
+						data.duration.seconds = 0;
+						data.duration.minutes += 1
+					}
+
+					if (data.duration.minutes >= 59) {
+						data.duration.minutes = 0;
+						data.duration.hours += 1;
+					}
+
+					data.duration.seconds++;
+
+					m.innerHTML = data.duration.minutes;
+					s.innerHTML = data.duration.seconds;
+				}, 1000);
+			}
+
+			// "release" event: when the communication is ended
+			call.onRelease = function(data) {
+				console.log("on release... (" + data.status + " - "
+					+ data.duration.hours + ":" + data.duration.minutes + ":"
+					+ data.duration.seconds + ") ");
+				window.clearInterval(duration_timer);
+			}
+		}
+	}());
+	</script>
+</head>
+
+<body>
+	<div class="container">
+		<div id="status-message"></div>
+		<h1 id="h" style="display: inline">0</h1>
+		<span style="font-weight: bold; font-size: 24px">:</span>
+		<h1 id="m" style="display: inline">0</h1>
+		<span style="font-weight: bold; font-size: 24px">:</span>
+		<h1 id="s" style="display: inline">0</h1>
+	</div>
+</body>
+</html>
